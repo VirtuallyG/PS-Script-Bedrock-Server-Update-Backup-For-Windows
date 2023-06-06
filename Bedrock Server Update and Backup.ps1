@@ -10,8 +10,9 @@ $gameDir = "C:\Users\USER\Minecraft Server\Bedrock Server"
 # CREDITS: u/WhetselS u/Nejireta_ u/rockknocker u/VirtuallyG
 # Buy Me A Coffee https://bmc.link/virtuallyg
 # LINKS: 	https://www.reddit.com/r/PowerShell/comments/xy9xqh/script_for_updating_minecraft_bedrock_server_on/
-#			https://www.dvgaming.de/minecraft-pe-bedrock-windows-automatic-update-script/
-#           https://www.reddit.com/r/Minecraft/comments/yw2gd1/minecraft_bedrock_server_autoupdate_script_for/
+#		https://www.dvgaming.de/minecraft-pe-bedrock-windows-automatic-update-script/
+#		https://www.reddit.com/r/Minecraft/comments/yw2gd1/minecraft_bedrock_server_autoupdate_script_for/
+#		https://www.reddit.com/r/Minecraft/comments/142jzui/bedrock_server_windows_powershell_script_for
 
 # OPTIONAL BACKUP SETTINGS AND INSTRUCTIONS BELOW:
 # The $source variable below is the location of the Worlds folder. By default it looks in the $gameDir/Worlds.
