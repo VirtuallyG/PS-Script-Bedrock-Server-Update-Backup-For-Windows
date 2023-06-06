@@ -1,6 +1,8 @@
 # PS-Script-Bedrock-Server-Update-Backup
 Powershell Script for automatic updating a bedrock server and backup the Worlds folder
 
+This script will check for new updates for the bedrock server. If an update is found it will stop the server, backup the worlds, backup config files, download, extract, install the update, restore the config files and restart the server. If there are no new updates, the script will stop the server, backup the worlds, and restart the server. If there has been no changes to the world saves since the last backup, the script will skip the backup.
+
 INSTRUCTIONS:
 
 (1)  PASTE THIS SCRIPT IN NOTEPAD AND SAVE IT IN YOUR SERVER DIRECTORY WITH .PS1 FILE EXTENSION (ex C:\Users\USER\Minecraft Server\Bedrock Server\UpdateBackupScript.ps1)
