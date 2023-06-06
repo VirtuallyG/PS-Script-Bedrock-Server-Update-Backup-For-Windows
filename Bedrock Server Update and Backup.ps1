@@ -1,4 +1,5 @@
-echo "MINECRAFT BEDROCK SERVER UPDATE SCRIPT (6/6/2023)"
+Write-Host "MINECRAFT BEDROCK SERVER UPDATE SCRIPT (6/6/2023)"
+Write-Host "`n" "`n" "`n" 
 # MICROSOFT POWERSHELL SCRIPT
 # INSTRUCTIONS:
 # (1)  PASTE THIS SCRIPT IN NOTEPAD AND SAVE IT IN YOUR SERVER DIRECTORY WITH .PS1 FILE EXTENSION (ex C:\Users\USER\Minecraft Server\Bedrock Server\UpdateBackupScript.ps1)
@@ -9,19 +10,21 @@ $gameDir = "C:\Users\USER\Minecraft Server\Bedrock Server"
  
 # CREDITS: u/WhetselS u/Nejireta_ u/rockknocker u/VirtuallyG
 # Buy Me A Coffee https://bmc.link/virtuallyg
-# LINKS: 	https://www.reddit.com/r/PowerShell/comments/xy9xqh/script_for_updating_minecraft_bedrock_server_on/
-#		https://www.dvgaming.de/minecraft-pe-bedrock-windows-automatic-update-script/
-#		https://www.reddit.com/r/Minecraft/comments/yw2gd1/minecraft_bedrock_server_autoupdate_script_for/
-#		https://www.reddit.com/r/Minecraft/comments/142jzui/bedrock_server_windows_powershell_script_for
 
+# LINKS: 	https://www.reddit.com/r/PowerShell/comments/xy9xqh/script_for_updating_minecraft_bedrock_server_on/
+#			https://www.dvgaming.de/minecraft-pe-bedrock-windows-automatic-update-script/
+#           https://www.reddit.com/r/Minecraft/comments/yw2gd1/minecraft_bedrock_server_autoupdate_script_for/
+
+ 
 # OPTIONAL BACKUP SETTINGS AND INSTRUCTIONS BELOW:
 # The $source variable below is the location of the Worlds folder. By default it looks in the $gameDir/Worlds.
 # you can change $source to a specific directory by changing the variable to any path (ex. $source = "C:\MyServerFolder\MyWorldsFolder")
 # The $destination variable below is the location that the script will backup the Worlds folder. By Default it set to the $gameDir/ScriptBackups
 # you can change the backup folder name by changing the word "ScriptBackups" below or you can specify a specific directory on
 # any drive by changing the variable to any path (ex. $destination = "C:\MyServerBackup\WorldsFolderBackup")
-# The $numbackup variable below is how many backups the script will keep. This can be any number but be aware of your space requirements.
+# The $numBackup variable below is how many backups the script will keep. This can be any number but be aware of your space requirements.
 # This script does not check for available space so be sure to keep this number within your hard drive's capacity.
+
 
 # FUNCTION TO BACKUP UP WORLDS FOLDER KEEPING LATEST BACKUPS SPECIFIED
 function Backup-Worlds {
@@ -29,17 +32,42 @@ function Backup-Worlds {
 
     # WORLDS FOLDER TO BE BACKED UP
     $source = Join-Path -Path $gameDir -ChildPath worlds
-	  # DESTINATION OF BACKUP (You can change this to a specific directory if want to save outside of
+	# DESTINATION OF BACKUP (You can change this to a specific directory if want to save outside of
     # the bedrock server folder, (ex. $destination = "D:\Games\Mincraft\ServerGameDataBackup")
     $destination = Join-Path -Path $gameDir -ChildPath ScriptBackups
     # NUMBER OF BACKUPS TO KEEP
-    $numbackup = 10
+    $numBackup = 10
 
     #DO NOT CHANGE VARIABLES BELOW UNLESS YOU KNOW WHAT YOU ARE DOING
 
+    # Get the last modified date of the most recently modified file within all the subfolders inside the "worlds" folder
+    $latestModification = Get-ChildItem -Path $source -Recurse -File | Sort-Object -Property LastWriteTime -Descending | Select-Object -First 1
 
+    # Check if there is any existing backup
+    $existingBackups = Get-ChildItem -Path $destination -Directory | Sort-Object -Property CreationTime -Descending
+    if ($existingBackups) {
+        # Get the last backup date
+        $lastBackupDate = $existingBackups[0].CreationTime
 
+        # Calculate the time difference between the last backup and the latest modification
+        $timeDifference = New-TimeSpan -Start $lastBackupDate -End $latestModification.LastWriteTime
+
+        # Skip backup if the difference is less than or equal to 2 minutes to allow time to start server. Starting the server modifies the worlds
+        if ($timeDifference.TotalMinutes -le 2) {
+            Write-Host "NO MODIFICATIONS FOUND AFTER THE LAST BACKUP. SKIPPING BACKUP"
+            return
+        }
+    }
+
+	#DATE VARIABLE FOR BACKUP FOLDER NAME
     $date = Get-Date -Format "yyyy-MM-dd_HHmmss"
+
+	# STOP SERVER
+	if(get-process -name bedrock_server -ErrorAction SilentlyContinue)
+	{
+		Write-Host "STOPPING SERVICE..."
+		Stop-Process -name "bedrock_server" 
+	}
 
     # Create the backup folder if it doesn't exist
     if (!(Test-Path -Path $destination)) {
@@ -50,15 +78,19 @@ function Backup-Worlds {
     $backupPath = Join-Path -Path $destination -ChildPath $date
     New-Item -ItemType Directory -Path $backupPath
     Copy-Item -Path $source -Destination $backupPath -Recurse
+	Write-Host "WORLDS FOLDER BACKUP COMPLETE"
+	Start-Sleep -Seconds 3
 
-    # Remove older backups based on variable in $numbackup 
+    # Remove older backups based on variable in $numBackup
+	Write-Host "REMOVING OLDER BACKUPS" 
     Get-ChildItem -Path $destination -Directory |
         Sort-Object -Property CreationTime -Descending |
-        Select-Object -Skip $numbackup |
+        Select-Object -Skip $numBackup |
         Remove-Item -Recurse -Force
+	Start-Sleep -Seconds 2
 }
 
-cd $gameDir 
+Set-Location $gameDir 
  
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
  
@@ -95,7 +127,7 @@ try
 catch
 {
 	# IF ERROR, CAN'T PROCEED, SO EXIT SCRIPT
-	echo "WEB REQUEST ERROR"
+	Write-Host "WEB REQUEST ERROR"
 	Start-Sleep -Seconds 10
 	exit
 } 
@@ -107,7 +139,7 @@ $filename = $url.Replace("https://minecraft.azureedge.net/bin-win/","")
 $url = "$url"
 $output = "$gameDir\ScriptUpdateFiles\$filename" 
  
-write-output "NEWEST UPDATE AVAILABLE: $filename"
+Write-Host "NEWEST UPDATE AVAILABLE: $filename"
  
 # CHECK IF FILE ALREADY DOWNLOADED
 if(!(Test-Path -Path $output -PathType Leaf))
@@ -115,16 +147,14 @@ if(!(Test-Path -Path $output -PathType Leaf))
 	# STOP SERVER
 	if(get-process -name bedrock_server -ErrorAction SilentlyContinue)
 	{
-		echo "STOPPING SERVICE..."
+		Write-Host "STOPPING SERVICE..."
 		Stop-Process -name "bedrock_server" 
 	}
 
- 	# Perform backup of worlds folder
-	echo "Backing up Worlds folder"
-    Start-Sleep -Seconds 3
+ 	# PERFORM BACKUP OF WORLDS FOLDER
+	Write-Host "BACKING UP WORLDS FOLDER"
+    Start-Sleep -Seconds 2
 	Backup-Worlds
-    echo "WORLDS FOLDER BACKUP COMPLETE"
-    Start-Sleep -Seconds 5
 
 	# DO A BACKUP OF CONFIG 
 	if(!(Test-Path -Path "ScriptUpdateFiles"))
@@ -134,79 +164,75 @@ if(!(Test-Path -Path $output -PathType Leaf))
  
 	if(Test-Path -Path "server.properties" -PathType Leaf)
 	{
-		echo "BACKING UP server.properties..."
+		Write-Host "BACKING UP server.properties..."
 		Copy-Item -Path "server.properties" -Destination ScriptUpdateFiles 
 	}
 	else # NO CONFIG FILE MEANS NO VALID SERVER INSTALLED, SOMETHING WENT WRONG...
 	{
-		echo "NO server.properties FOUND ... EXITING"
+		Write-Host "NO server.properties FOUND ... EXITING"
 		Start-Sleep -Seconds 10
 		exit
 	}
  
 	if(Test-Path -Path "allowlist.json" -PathType Leaf)
 	{
-		echo "BACKING UP allowlist.json..."
+		Write-Host "BACKING UP allowlist.json..."
 		Copy-Item -Path "allowlist.json" -Destination ScriptUpdateFiles
 	}
  
 	if(Test-Path -Path "permissions.json" -PathType Leaf)
 	{
-		echo "BACKING UP permissions.json..."
+		Write-Host "BACKING UP permissions.json..."
 		Copy-Item -Path "permissions.json" -Destination ScriptUpdateFiles 
 	}
  
 	# DOWNLOAD UPDATED SERVER .ZIP FILE
-	Write-Output "DOWNLOADING $filename..."
+	Write-Host "DOWNLOADING $filename..."
 	$start_time = Get-Date 
 	Invoke-WebRequest -Uri $url -OutFile $output 
  
 	# UNZIP
-	echo "UPDATING SERVER FILES..."
+	Write-Host "UPDATING SERVER FILES..."
 	Expand-Archive -LiteralPath $output -DestinationPath $gameDir -Force 
  
 	# RECOVER BACKUP OF CONFIG 
-	echo "RESTORING server.properties..."
+	Write-Host "RESTORING server.properties..."
 	Copy-Item -Path ".\ScriptUpdateFiles\server.properties" -Destination .\ 
  
 	if(Test-Path -Path "allowlist.json" -PathType Leaf)
 	{
-		echo "RESTORING allowlist.json..."
+		Write-Host "RESTORING allowlist.json..."
 		Copy-Item -Path ".\ScriptUpdateFiles\allowlist.json" -Destination .\ 
 	}
  
 	if(Test-Path -Path "permissions.json" -PathType Leaf)
 	{
-		echo "RESTORING permissions.json..."
+		Write-Host "RESTORING permissions.json..."
 		Copy-Item -Path ".\ScriptUpdateFiles\permissions.json" -Destination .\ 
 	}
  
 	# START SERVER
-	echo "STARTING SERVER..."
+	Write-Host "STARTING SERVER..."
 	Start-Process -FilePath bedrock_server.exe 
 } 
 else
 {
-	echo "UPDATE ALREADY INSTALLED..."
-	# STOP SERVER
-	if(get-process -name bedrock_server -ErrorAction SilentlyContinue)
-	{
-		echo "STOPPING SERVICE..."
-		Stop-Process -name "bedrock_server" 
-	}
-
- 	# Perform backup of worlds folder
-	echo "Backing up Worlds folder"
+	Write-Host "UPDATE ALREADY INSTALLED..."
+	
+ 	# PERFORM BACKUP OF WORLDS FOLDER
+	Write-Host "BACKING UP WORLDS FOLDER..."
     Start-Sleep -Seconds 3
 	Backup-Worlds
-    echo "WORLDS FOLDER BACKUP COMPLETE"
-    Start-Sleep -Seconds 5
 
 	# START SERVER
-	echo "STARTING SERVER..."
-	Start-Process -FilePath bedrock_server.exe 
+	$exePath = "$gameDir\bedrock_server.exe"
+	if (-not (Get-Process -Name bedrock_server -ErrorAction SilentlyContinue)) { 
+		Write-Host "STARTING SERVER..."
+		start-process -filepath $exePath
+        Write-Host "STARTED"
+        Start-Sleep -Seconds 2
+        } 
 }
- 
+Write-Host "CLOSING SCRIPT" 
 Start-Sleep -Seconds 5
 exit
-
