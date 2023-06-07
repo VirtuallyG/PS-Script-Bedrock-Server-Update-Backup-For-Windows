@@ -6,7 +6,7 @@ Write-Host "`n" "`n" "`n"
 # (2) CHANGE $gameDir VARIABLE BELOW TO YOUR SERVER DIRECTORY AND SAVE THE SCRIPT
 $gameDir = "C:\Users\USER\Minecraft Server\Bedrock Server"
 # (3) RIGHT CLICK THE .PS1 FILE AND CHOOSE "RUN WITH POWERSHELL" TO TEST IT, MAKE SURE IT WORKS
-# (4) CREATE POWERSHELL TASK IN WINDOWS TASK SCHEDULER TO RUN PERIODICALLY (WHEN NOBODY IS LIKELY TO BE CONNECTED TO SERVER) Google how to setup a powershell script to run as a scheduled task.
+# (4) CREATE POWERSHELL TASK IN WINDOWS TASK SCHEDULER TO RUN PERIODICALLY (WHEN NOBODY IS LIKELY TO BE CONNECTED TO SERVER)
  
 # CREDITS: u/WhetselS u/Nejireta_ u/rockknocker u/VirtuallyG
 # Buy Me A Coffee https://bmc.link/virtuallyg
@@ -27,6 +27,8 @@ $gameDir = "C:\Users\USER\Minecraft Server\Bedrock Server"
 
 
 # FUNCTION TO BACKUP UP WORLDS FOLDER KEEPING LATEST BACKUPS SPECIFIED
+$logFilePath = Join-Path -Path $gameDir -ChildPath ScriptLogs\Log.txt
+Start-Transcript -Path $logFilePath -Force
 function Backup-Worlds {
 	# Variables able to be configured:
 
@@ -233,6 +235,7 @@ else
         Start-Sleep -Seconds 2
         } 
 }
-Write-Host "CLOSING SCRIPT" 
+Write-Host "CLOSING SCRIPT"
+Stop-Transcript 
 Start-Sleep -Seconds 5
 exit
