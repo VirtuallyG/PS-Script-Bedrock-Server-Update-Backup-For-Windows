@@ -1,4 +1,4 @@
-Write-Host "MINECRAFT BEDROCK SERVER UPDATE SCRIPT (6/6/2023)"
+Write-Host "MINECRAFT BEDROCK SERVER UPDATE SCRIPT (1/8/2025)"
 Write-Host "`n" "`n" "`n" 
 # MICROSOFT POWERSHELL SCRIPT
 # INSTRUCTIONS:
@@ -135,9 +135,9 @@ catch
 } 
  
 # PARSE DOWNLOAD LINK AND FILE NAME
-$serverurl = $requestResult.Links | select href | where {$_.href -like "https://minecraft.azureedge.net/bin-win/bedrock-server*"}
+$serverurl = $requestResult.Links | select href | where {$_.href -like "https://www.minecraft.net/bedrockdedicatedserver/bin-win/bedrock-server*"}
 $url = $serverurl.href
-$filename = $url.Replace("https://minecraft.azureedge.net/bin-win/","")
+$filename = $url.Replace("https://www.minecraft.net/bedrockdedicatedserver/bin-win/","")
 $url = "$url"
 $output = "$gameDir\ScriptUpdateFiles\$filename" 
  
@@ -215,7 +215,7 @@ if(!(Test-Path -Path $output -PathType Leaf))
  
 	# START SERVER
 	Write-Host "STARTING SERVER..."
-	Start-Process -FilePath bedrock_server.exe 
+	Start-Process $gameDir -FilePath bedrock_server.exe 
 } 
 else
 {
@@ -228,9 +228,12 @@ else
 
 	# START SERVER
 	$exePath = "$gameDir\bedrock_server.exe"
+    $logFile1 = $date._output.txt
+    $logFile2 = $date._errors.txt
 	if (-not (Get-Process -Name bedrock_server -ErrorAction SilentlyContinue)) { 
 		Write-Host "STARTING SERVER..."
-		start-process -filepath $exePath
+        start-process $exePath
+		#start-process -filepath $exePath
         Write-Host "STARTED"
         Start-Sleep -Seconds 2
         } 
