@@ -98,43 +98,61 @@ Set-Location $gameDir
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
  
 # =====================================================================================================
-# Update method changed 7-7-2025 to use a community database instead of scraping the Microsoft website.
-# Added a fallback for increased reliability.
-# Thanks to J44kkim4 for suggesting an alternative method
+# Update method changed 7-7-2025 to use a tiered system for fetching the download URL.
+# It will try the official Microsoft API first, then fall back to two different community databases.
+# Thanks to IgorIsaiasBanlian and J44kkim4 
 # =====================================================================================================
 
 $url = $null
-# --- PRIMARY METHOD ---
-Write-Host "Fetching latest version information from primary source (Bedrock-OSS)..."
+# --- PRIMARY METHOD (Official Microsoft API) ---
+Write-Host "Fetching latest version information from primary source (Microsoft API)..."
 try {
-    $versionsUrl = "https://raw.githubusercontent.com/Bedrock-OSS/BDS-Versions/main/versions.json"
-    $versionData = Invoke-RestMethod -Uri $versionsUrl
-    $latestVersionString = $versionData.windows.stable
-    if ($latestVersionString) {
-		# Construct the URL using the known, correct pattern and the latest version string
-        $url = "https://www.minecraft.net/bedrockdedicatedserver/bin-win/bedrock-server-$($latestVersionString).zip"
+    $json = Invoke-WebRequest -Uri "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links" -UseBasicParsing
+    $data = $json.Content | ConvertFrom-Json
+    $win = $data.result.links | Where-Object { $_.downloadType -eq "serverBedrockWindows" }
+    
+    if ($win.downloadUrl) {
+        $url = $win.downloadUrl
         Write-Host "✅ Primary source successful."
+    } else {
+        # Throw an error to trigger the catch block if the specific link isn't found
+        throw "JSON link for Bedrock Server for Windows not found in primary source."
     }
 }
 catch {
-    Write-Host "⚠️ Primary source failed. Trying fallback method..."
-    # --- FALLBACK METHOD --- Thanks to J44kkim4
+    Write-Host "⚠️ Primary source failed. Trying Fallback 1 (Bedrock-OSS)..."
+    # --- FALLBACK METHOD 1 ---
     try {
-        $jsonUrl = "https://raw.githubusercontent.com/kittizz/bedrock-server-downloads/main/bedrock-server-downloads.json"
-        $jsonData = Invoke-RestMethod -Uri $jsonUrl
-        $latestVersion = $jsonData.release.PSObject.Properties.Name | Sort-Object {[version]$_} -Descending | Select-Object -First 1
-        $url = $jsonData.release.$latestVersion.windows.url
-        if ($url) {
-            Write-Host "✅ Fallback source successful."
+        $versionsUrl = "https://raw.githubusercontent.com/Bedrock-OSS/BDS-Versions/main/versions.json"
+        $versionData = Invoke-RestMethod -Uri $versionsUrl
+        $latestVersionString = $versionData.windows.stable
+        if ($latestVersionString) {
+            $constructedUrl = "https://www.minecraft.net/bedrockdedicatedserver/bin-win/bedrock-server-$($latestVersionString).zip"
+            Write-Host "Verifying constructed URL: $constructedUrl"
+            # Verify the URL is valid before accepting it
+            Invoke-WebRequest -Method Head -Uri $constructedUrl -TimeoutSec 10 | Out-Null
+            $url = $constructedUrl
+            Write-Host "✅ Fallback 1 successful."
         }
     } catch {
-        Write-Host "❌ Fallback source also failed."
-        Write-Host "Error: $($_.Exception.Message)"
-        # This catch block is intentionally empty to allow the final check to handle the exit.
+        Write-Host "⚠️ Fallback 1 failed. Trying Fallback 2 (kittizz)..."
+        # --- FALLBACK METHOD 2 ---
+        try {
+            $jsonUrl = "https://raw.githubusercontent.com/kittizz/bedrock-server-downloads/main/bedrock-server-downloads.json"
+            $jsonData = Invoke-RestMethod -Uri $jsonUrl
+            $latestVersion = $jsonData.release.PSObject.Properties.Name | Sort-Object {[version]$_} -Descending | Select-Object -First 1
+            $url = $jsonData.release.$latestVersion.windows.url
+            if ($url) {
+                Write-Host "✅ Fallback 2 successful."
+            }
+        } catch {
+            Write-Host "❌ Fallback 2 also failed."
+            # This catch block is intentionally empty to allow the final check to handle the exit.
+        }
     }
 }
 
-# Check if either method successfully found a URL
+# Check if any method successfully found a URL
 if (-not $url) {
     Write-Host "❌ Could not determine download URL from any source. Exiting." -ForegroundColor Red
     Stop-Transcript
